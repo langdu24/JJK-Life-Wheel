@@ -1,4 +1,4 @@
-(() => {
+((() => {
   "use strict";
 
   const VERSION = "7.2.0";
@@ -97,20 +97,28 @@
     const flags = p.flags || {};
     if (flags.hasInnateTechnique === false || flags.noInnateTechnique === true) return true;
     if (flags.hasInnateTechnique === true) return false;
-    if (/无生得术式|没有生得术式|无术式|不具备生得术式/.test(text)) return true;
-    if (/生得术式[：:]
-?
-?否/.test(text)) return true;
-    // 人生转盘导入且没有任何术式字段时，视为无术式
+    if (/无生得术式|没有生得术式|不具备生得术式|无固有术式/.test(text)) return true;
+    if (/是否拥有生得术式[^\n]{0,12}否|生得术式[^\n]{0,8}否/.test(text)) return true;
+    try {
+      if (typeof state !== "undefined" && state?.answers) {
+        const keys = Object.keys(state.answers);
+        for (const key of keys) {
+          if (!/innate|technique|生得术式|术式/.test(key)) continue;
+          const ans = state.answers[key];
+          const blob = [ans?.text, ans?.rawText, ans?.result, key].filter(Boolean).join(" ");
+          if (/否|没有|无/.test(blob) && /生得术式|innate/i.test(blob + key)) return true;
+        }
+      }
+    } catch {}
     if (
       isLifeWheelProfile(p) &&
       !p.techniquePower &&
       !p.technique &&
-      !p.techniques?.length &&
-      !/术式|technique|domain|领域/.test(String(p.notes || ""))
+      !(p.techniques && p.techniques.length) &&
+      /准一级|一级|二级|三级|特级/.test(text) &&
+      !/生得术式|固有术式|innate technique/i.test(text)
     ) {
-      // 仍可能有落花等非生得技巧；只要明确写了无生得术式才强制
-      if (/是否拥有生得术式[：:].*否|生得术式.*否/.test(text)) return true;
+      return true;
     }
     return false;
   }
@@ -131,7 +139,6 @@
     const fromText = M.parseGrade(text);
     if (fromText > 0) return fromText;
 
-    // 人生转盘运行时 flag
     if (typeof state !== "undefined") {
       const flagGrade = M.parseGrade(
         state?.flags?.sorcererGradeLabel || state?.flags?.sorcererGrade || ""
@@ -171,7 +178,7 @@
 
   function readTechniquePower(p) {
     p = p || {};
-    if (detectNoInnateTechnique(p)) return 1; // 无术式：不再默认 B
+    if (detectNoInnateTechnique(p)) return 1;
     for (const v of [
       p.techniquePower,
       p.technique?.power,
@@ -268,10 +275,7 @@
     const k = actionArchetype(a);
     const m = model(p);
     if (k === "physical" || k === "utility") return 1;
-    if (m.explicitNoCT) {
-      // 无术式角色的“术式/通用混合”动作，按体术主轴给保底，不吃虚高术式
-      return 0.85 + Math.max(0, m.gradeRank - 2) * 0.05;
-    }
+    if (m.explicitNoCT) return 0.85 + Math.max(0, m.gradeRank - 2) * 0.05;
     const f = Math.exp(0.085 * (m.techniqueOffense - 4));
     return k === "hybrid" ? Math.sqrt(Math.max(0.45, f)) : f;
   }
@@ -356,19 +360,16 @@
     r.v7AppliedDamage = Number(d.toFixed(1));
   }
 
-  function applyMatchupToLoss(loss, attacker, defender, outgoing) {
+  function applyMatchupToLoss(loss, attacker, defender) {
     const am = model(profileOf(attacker));
     const dm = model(profileOf(defender));
-    const mult = M.matchupMultiplier(am.gradeRank || am.combatRating, dm.gradeRank || dm.combatRating, {
+    const mult = M.matchupMultiplier(am.gradeRank, dm.gradeRank, {
       attackerNoCT: am.explicitNoCT,
       defenderNoCT: dm.explicitNoCT,
       defenderUtility: dm.utilityRole
     });
-    // outgoing: attacker hits defender -> multiply loss by mult
-    // incoming path uses same helper with sides swapped conceptually
-    const adjusted = outgoing ? loss * mult : loss / Math.max(0.55, mult);
     return {
-      adjusted: Math.max(0, adjusted),
+      adjusted: Math.max(0, loss * mult),
       mult,
       attackerModel: am,
       defenderModel: dm
@@ -389,11 +390,9 @@
       r.maxCe = m.maxCe;
       r.ce = m.maxCe;
       r.ceCostMultiplier = m.ceCostMultiplier;
-      // 高阶无术式：略降耗蓝脆弱，避免被工具人拖空
       if (m.explicitNoCT && m.gradeRank >= 4) {
         r.ceCostMultiplier = Number((r.ceCostMultiplier * 0.9).toFixed(4));
       }
-      // 低阶工具人正面对决：略增耗蓝，降低拖资源能力
       if (m.utilityRole && m.gradeRank > 0 && m.gradeRank <= 2) {
         r.ceCostMultiplier = Number((r.ceCostMultiplier * 1.08).toFixed(4));
       }
@@ -433,7 +432,6 @@
       let damage = num(r.damage, 0);
       const techMult = directTechniqueMultiplier(actor, c);
       if (Math.abs(techMult - 1) >= 0.002) damage *= techMult;
-
       const am = model(profileOf(actor));
       const dm = model(profileOf(opponent));
       const match = M.matchupMultiplier(am.gradeRank, dm.gradeRank, {
@@ -442,7 +440,6 @@
         defenderNoCT: dm.explicitNoCT
       });
       if (Math.abs(match - 1) >= 0.002) damage *= match;
-
       r.damage = Number(damage.toFixed(1));
       if (r.damageBreakdown && typeof r.damageBreakdown === "object") {
         r.damageBreakdown.v7TechniquePowerMultiplier = Number(techMult.toFixed(4));
@@ -495,7 +492,6 @@
             scaleDamageFields(a, mult);
             a.v7TechniquePowerMultiplier = Number(mult.toFixed(4));
           }
-          // 等级压制：准一级打三级工具人时，通用包直接获得输出地板
           const defModel = model(profileOf(opponent));
           const match = M.matchupMultiplier(actorModel.gradeRank, defModel.gradeRank, {
             attackerNoCT: actorModel.explicitNoCT,
@@ -517,11 +513,8 @@
       let loss = Math.max(0, before - after);
       if (loss <= 0) return r;
 
-      // 对非玩家侧（或所有方向）再统一一次等级匹配，防止原作卡绕过
-      const matchInfo = applyMatchupToLoss(loss, actor, opponent, true);
-      if (Math.abs(matchInfo.mult - 1) >= 0.02) {
-        loss = matchInfo.adjusted;
-      }
+      const matchInfo = applyMatchupToLoss(loss, actor, opponent);
+      if (Math.abs(matchInfo.mult - 1) >= 0.02) loss = matchInfo.adjusted;
 
       const soft = Math.min(
         before,
