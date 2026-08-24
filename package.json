@@ -1,9 +1,9 @@
 {
   "name": "jjk-life-wheel",
   "private": true,
-  "version": "8.0.0",
+  "version": "8.1.0",
   "scripts": {
-    "check": "node --check core/v7-model.js && node --check core/v7-data.js && node --check core/v7-app.js && node --check core/v8-state.js && node --check core/v8-app.js && node --check patches/v5.js",
-    "test": "node tests/v7-model.test.js && node tests/v8-state.test.js && node tests/verify-runtime.js"
+    "check": "node --check core/v7-model.js && node --check core/v7-data.js && node --check core/v7-app.js && node --check core/v8-state.js && node --check core/v8-rct-model.js && node --check core/v8-app.js && node --check core/v8-rct.js && node --check patches/v5.js",
+    "test": "node tests/v7-model.test.js && node tests/v8-state.test.js && node tests/v8-rct.test.js && node tests/verify-runtime.js"
   }
 }
