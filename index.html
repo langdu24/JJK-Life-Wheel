@@ -10,46 +10,43 @@
   </style>
 </head>
 <body>
-  <section id="boot">
-    <main class="card">
-      <h1>呪 · JJK Life Wheel</h1>
-      <p class="muted">正在载入当前稳定版与补丁层……</p>
-      <div class="spinner" id="spinner"></div>
-      <div class="status" id="status">读取 <code>game.html</code></div>
-      <p class="muted">仓库：<a href="https://github.com/langdu24/JJK-Life-Wheel">langdu24/JJK-Life-Wheel</a></p>
-    </main>
-  </section>
+  <section id="boot"><main class="card"><h1>呪 · JJK Life Wheel</h1><p class="muted">正在载入当前稳定版与补丁层……</p><div class="spinner" id="spinner"></div><div class="status" id="status">定位游戏文件……</div><p class="muted">仓库：<a href="https://github.com/langdu24/JJK-Life-Wheel">langdu24/JJK-Life-Wheel</a></p></main></section>
 <script>
 (async()=>{
   const boot=document.getElementById('boot');
   const status=document.getElementById('status');
   const spinner=document.getElementById('spinner');
-  try{
-    const r=await fetch('./game.html',{method:'HEAD',cache:'no-store'});
-    if(!r.ok) throw new Error('game.html 尚未上传');
-    const frame=document.createElement('iframe');
-    frame.id='game';
-    frame.title='JJK Life Wheel';
-    frame.src='./game.html?v='+Date.now();
-    frame.allow='clipboard-read; clipboard-write';
-    frame.addEventListener('load',()=>{
-      try{
-        const doc=frame.contentDocument;
-        const patch=doc.createElement('script');
-        patch.src='./patches/current.js?v='+Date.now();
-        patch.dataset.jjkGithubPatch='current';
-        doc.head.appendChild(patch);
-      }catch(err){
-        console.warn('[JJK-Life-Wheel] patch injection failed',err);
-      }
-      boot.remove();
-    },{once:true});
-    document.body.appendChild(frame);
-  }catch(e){
+  const candidates=['./game.html','./%20game.html'];
+  let gameUrl='';
+  for(const candidate of candidates){
+    try{
+      const r=await fetch(candidate,{method:'HEAD',cache:'no-store'});
+      if(r.ok){gameUrl=candidate;break;}
+    }catch{}
+  }
+  if(!gameUrl){
     spinner.hidden=true;
     status.className='status warn';
-    status.innerHTML='在线入口与补丁系统已经就绪，但当前稳定版 <code>game.html</code> 还未进入仓库。上传后刷新本页即可直接玩。';
+    status.textContent='没有找到游戏文件。请确认仓库根目录存在 game.html。';
+    return;
   }
+  status.textContent='正在载入游戏……';
+  const frame=document.createElement('iframe');
+  frame.id='game';
+  frame.title='JJK Life Wheel';
+  frame.src=gameUrl+'?v='+Date.now();
+  frame.allow='clipboard-read; clipboard-write';
+  frame.addEventListener('load',()=>{
+    try{
+      const doc=frame.contentDocument;
+      const patch=doc.createElement('script');
+      patch.src='./patches/current.js?v='+Date.now();
+      patch.dataset.jjkGithubPatch='current';
+      doc.head.appendChild(patch);
+    }catch(err){console.warn('[JJK-Life-Wheel] patch injection failed',err);}
+    boot.remove();
+  },{once:true});
+  document.body.appendChild(frame);
 })();
 </script>
 </body>
