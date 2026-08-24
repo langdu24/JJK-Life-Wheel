@@ -1,7 +1,7 @@
 {
   "schema": "jjk-v7-extracted-data-manifest",
   "generatedFrom": "game.html",
-  "sourceSha256": "a059e043ca150c61b652a1eb9f4e25b3a0adaae7135e863e16a51fafa44880b5",
+  "sourceSha256": "ab89b5d42fa22e4eb7ea246432b66e31e37270895c8bed43ed3837ca79c0d8a4",
   "files": [
     {
       "path": "assets/duel-dynamics/card-skin-format.json",
