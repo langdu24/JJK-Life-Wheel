@@ -40,16 +40,41 @@ jobs:
       - name: Normalize V7 source metadata
         run: node scripts/normalize-v7-source.mjs game.html
 
-      - name: Commit source metadata normalization
+      - name: Sync extracted battle data mirror
         run: |
           set -e
-          if git diff --quiet -- game.html; then
-            echo "game.html metadata already normalized"
+          rm -rf data/extracted-v7
+          node scripts/extract-embedded-data.mjs game.html data/extracted-v7
+          test -f data/extracted-v7/manifest.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          let count = 0;
+          function walk(dir) {
+            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+              const full = path.join(dir, entry.name);
+              if (entry.isDirectory()) walk(full);
+              else if (entry.name.endsWith('.json')) {
+                JSON.parse(fs.readFileSync(full, 'utf8'));
+                count += 1;
+              }
+            }
+          }
+          walk('data/extracted-v7');
+          if (!count) throw new Error('no extracted JSON files validated');
+          console.log(`validated ${count} extracted JSON files`);
+          NODE
+
+      - name: Commit normalized source and extracted data
+        run: |
+          set -e
+          if [ -z "$(git status --porcelain -- game.html data/extracted-v7)" ]; then
+            echo "source metadata and extracted data already synchronized"
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add game.html
-            git commit -m "chore: normalize game.html V7 metadata"
+            git add game.html data/extracted-v7
+            git commit -m "chore: sync V7 source metadata and extracted battle data"
             git push
           fi
 
@@ -71,7 +96,7 @@ jobs:
 
       - name: Deployment inventory
         run: |
-          ls -lh index.html game.html core/v7-model.js core/v7-data.js core/v7-app.js patches/v5.js
+          ls -lh index.html game.html core/v7-model.js core/v7-data.js core/v7-app.js patches/v5.js data/extracted-v7/manifest.json
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
