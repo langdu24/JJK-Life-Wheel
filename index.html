@@ -4,61 +4,29 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#111114">
-  <title>JJK Life Wheel</title>
+  <title>JJK Life Wheel · V7</title>
   <style>
     :root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#0d0d10;color:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}#game{position:fixed;inset:0;width:100%;height:100%;border:0;background:#0d0d10}#boot{min-height:100svh;display:grid;place-items:center;padding:24px}.card{width:min(620px,100%);padding:28px;border:1px solid #33333b;border-radius:22px;background:#17171c;box-shadow:0 20px 80px #0008}.muted{color:#aaaab5;line-height:1.65}.status{margin:22px 0;padding:16px;border-radius:14px;background:#202028}.warn{color:#ffd37a}a{color:#d9b8ff}.spinner{width:26px;height:26px;border:3px solid #444;border-top-color:#eee;border-radius:50%;animation:r 1s linear infinite;margin:14px 0}@keyframes r{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
-  <section id="boot"><main class="card"><h1>呪 · JJK Life Wheel</h1><p class="muted">正在载入当前稳定版与补丁层……</p><div class="spinner" id="spinner"></div><div class="status" id="status">定位游戏文件……</div><p class="muted">仓库：<a href="https://github.com/langdu24/JJK-Life-Wheel">langdu24/JJK-Life-Wheel</a></p></main></section>
+  <section id="boot"><main class="card"><h1>呪 · JJK Life Wheel V7</h1><p class="muted">正在载入统一数据系统……</p><div class="spinner" id="spinner"></div><div class="status" id="status">定位 game.html……</div><p class="muted">数值核心：V7 Unified Data · 旧数值补丁已停用</p></main></section>
 <script>
 (async()=>{
   const boot=document.getElementById('boot'),status=document.getElementById('status'),spinner=document.getElementById('spinner');
-  // 只认干净的 game.html（部署时 workflow 会自动把带空格的文件名规范化）
-  const gameUrl = './game.html';
-  try {
-    const r = await fetch(gameUrl, { method: 'HEAD', cache: 'no-store' });
-    if (!r.ok) throw new Error('not found');
-  } catch {
-    spinner.hidden = true;
-    status.className = 'status warn';
-    status.textContent = '没有找到 game.html。请确认仓库根目录存在干净文件名的 game.html（不要有前导空格）。';
-    return;
-  }
-  status.textContent = '正在载入游戏……';
-  const frame = document.createElement('iframe');
-  frame.id = 'game';
-  frame.title = 'JJK Life Wheel';
-  frame.src = gameUrl + '?v=' + Date.now();
-  frame.allow = 'clipboard-read; clipboard-write';
-  frame.addEventListener('load', () => {
-    try {
-      const doc = frame.contentDocument;
-      const loadPatch = (src, tag, next) => {
-        const s = doc.createElement('script');
-        s.src = src + '?v=' + Date.now();
-        s.dataset.jjkGithubPatch = tag;
-        s.onload = () => next?.();
-        s.onerror = () => { console.warn('[JJK-Life-Wheel] patch load failed', src); next?.(); };
-        doc.head.appendChild(s);
-      };
-      // 按顺序注入补丁层
-      loadPatch('./patches/current.js', 'current', () =>
-        loadPatch('./patches/v3.js', 'v3', () =>
-          loadPatch('./patches/v3b.js', 'v3b', () =>
-            loadPatch('./patches/v4.js', 'v4', () =>
-              loadPatch('./patches/v5.js', 'v5', () =>
-                loadPatch('./patches/v6.js', 'v6')
-              )
-            )
-          )
-        )
-      );
-    } catch (err) {
-      console.warn('[JJK-Life-Wheel] patch injection failed', err);
-    }
+  const gameUrl='./game.html';
+  try{const r=await fetch(gameUrl,{method:'HEAD',cache:'no-store'});if(!r.ok)throw new Error('not found')}catch{spinner.hidden=true;status.className='status warn';status.textContent='没有找到 game.html。';return}
+  status.textContent='载入游戏本体与 V7 核心……';
+  const frame=document.createElement('iframe');frame.id='game';frame.title='JJK Life Wheel';frame.src=gameUrl+'?v='+Date.now();frame.allow='clipboard-read; clipboard-write';
+  frame.addEventListener('load',()=>{
+    try{
+      const doc=frame.contentDocument;
+      const load=(src,tag,next)=>{const s=doc.createElement('script');s.src=src+'?v='+Date.now();s.dataset.jjkRuntime=tag;s.onload=()=>next?.();s.onerror=()=>{console.warn('[JJK-Life-Wheel] load failed',src);next?.()};doc.head.appendChild(s)};
+      // V5 仅保留剧情流程稳定修复；所有旧数值补丁 current/v3/v3b/v4/v6 均不再加载。
+      load('./patches/v5.js','flow-v5',()=>load('./core/v7-data.js','data-v7',()=>load('./core/v7-app.js','app-v7')));
+    }catch(err){console.warn('[JJK-Life-Wheel] runtime injection failed',err)}
     boot.remove();
-  }, { once: true });
+  },{once:true});
   document.body.appendChild(frame);
 })();
 </script>
