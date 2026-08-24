@@ -24,30 +24,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Normalize game filename (safety net)
+      - name: Normalize game filename
         run: |
           set -e
-          echo "=== Current root files ==="
-          ls -la
-
-          # 如果还存在带前导空格的旧文件名，自动改成干净的 game.html
           if [ -f " game.html" ]; then
-            if [ -f game.html ]; then
-              echo "Both ' game.html' and 'game.html' exist. Removing the spaced one."
-              rm -f " game.html"
-            else
-              echo "Found ' game.html' with leading space → renaming to game.html"
-              mv " game.html" game.html
-            fi
+            if [ -f game.html ]; then rm -f " game.html"; else mv " game.html" game.html; fi
           fi
+          test -f game.html
+          test -f index.html
 
-          if [ ! -f game.html ]; then
-            echo "ERROR: game.html is missing after normalize step."
-            exit 1
-          fi
+      - name: Validate V7 JavaScript
+        run: |
+          set -e
+          node --check core/v7-data.js
+          node --check core/v7-app.js
+          node --check patches/v5.js
+          echo "V7 JavaScript syntax check passed."
 
-          echo "=== Final check ==="
-          ls -lh index.html game.html patches/*.js
+      - name: Deployment inventory
+        run: |
+          ls -lh index.html game.html core/v7-data.js core/v7-app.js patches/v5.js
           echo "game.html size: $(wc -c < game.html) bytes"
 
       - name: Configure Pages
