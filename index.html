@@ -24,7 +24,7 @@
     try{
       const doc=frame.contentDocument;
       const loadPatch=(src,tag,next)=>{const s=doc.createElement('script');s.src=src+'?v='+Date.now();s.dataset.jjkGithubPatch=tag;s.onload=()=>next?.();s.onerror=()=>{console.warn('[JJK-Life-Wheel] patch load failed',src);next?.()};doc.head.appendChild(s)};
-      loadPatch('./patches/current.js','current',()=>loadPatch('./patches/v3.js','v3',()=>loadPatch('./patches/v3b.js','v3b')));
+      loadPatch('./patches/current.js','current',()=>loadPatch('./patches/v3.js','v3',()=>loadPatch('./patches/v3b.js','v3b',()=>loadPatch('./patches/v4.js','v4'))));
     }catch(err){console.warn('[JJK-Life-Wheel] patch injection failed',err)}
     boot.remove();
   },{once:true});
