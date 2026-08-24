@@ -3,6 +3,8 @@ const R=require('../core/v8-rct-model.js');
 
 let p=R.deriveProfile({text:'普通术师'});
 assert.equal(p.hasRct,false);
+assert.equal(R.deriveProfile({text:'未掌握反转术式'}).hasRct,false);
+assert.equal(R.deriveProfile({text:'无反转术式'}).hasRct,false);
 
 p=R.deriveProfile({text:'高级技巧：反转术式',control:'B',efficiency:'B',talent:'B'});
 assert.equal(p.mastery,'basic');
