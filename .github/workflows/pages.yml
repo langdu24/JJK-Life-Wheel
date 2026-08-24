@@ -24,12 +24,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Verify site files
+      - name: Normalize game filename
         run: |
-          test -f index.html
-          if [ ! -f game.html ]; then
-            echo "::warning::game.html is not in the repository yet. The Pages shell will deploy, but the game itself cannot load."
+          if [ ! -f game.html ] && [ -f " game.html" ]; then
+            echo "Found game file with a leading space; normalizing it for Pages."
+            mv " game.html" game.html
           fi
+          test -f index.html
+          test -f game.html
+          ls -lh index.html game.html patches/current.js
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
