@@ -29,7 +29,9 @@
   }
   function deriveProfile(input={}){
     const text=textOf(input);
-    const hasRct=Boolean(input.hasRct)||/反转术式(?!反转)|反転術式|reverse[_\s-]?cursed[_\s-]?technique|\brct\b|rct_user|反转恢复|反转治疗|疗伤/i.test(text);
+    const positive=/反转术式|反転術式|reverse[_\s-]?cursed[_\s-]?technique|\brct\b|rct_user|反转恢复|反转治疗|疗伤/i.test(text);
+    const negative=/无反转术式|未掌握反转术式|不会反转术式|无法使用反转术式/i.test(text);
+    const hasRct=input.hasRct===true||(positive&&!negative);
     if(!hasRct)return Object.freeze({version:VERSION,hasRct:false,mastery:"none",masteryLabel:LABEL.none,selfHeal:false,externalOutput:false,combatRegen:false,organRepair:false,limbRepair:false,brainRepair:false,burnoutRepair:false,soulRepair:false,control:rankValue(input.control),efficiency:rankValue(input.efficiency),talent:rankValue(input.talent)});
     const control=rankValue(input.control),efficiency=rankValue(input.efficiency),talent=rankValue(input.talent);
     const technique=rankValue(input.techniquePower,4);
@@ -84,7 +86,7 @@
     }else if(injury.kind==="brain"){
       if(profile.brainRepair){repair="partial";reason="top_rct_brain_repair"}else reason="brain_damage_too_severe";
     }else if(injury.kind==="limb"){
-      if(profile.limbRepair){repair="full";reason="limb_regeneration"}else reason="limb_regeneration_not_unlocked";
+      if(profile.limbRepair){repair="full";reason:"limb_regeneration";reason="limb_regeneration"}else reason="limb_regeneration_not_unlocked";
     }else if(injury.kind==="organ"){
       if(profile.organRepair){repair=level>=MASTERY.advanced?"full":"partial";reason="organ_repair"}
     }else if(injury.kind==="systemic"){
