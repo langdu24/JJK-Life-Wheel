@@ -86,7 +86,7 @@
     }else if(injury.kind==="brain"){
       if(profile.brainRepair){repair="partial";reason="top_rct_brain_repair"}else reason="brain_damage_too_severe";
     }else if(injury.kind==="limb"){
-      if(profile.limbRepair){repair="full";reason:"limb_regeneration";reason="limb_regeneration"}else reason="limb_regeneration_not_unlocked";
+      if(profile.limbRepair){repair="full";reason="limb_regeneration"}else reason="limb_regeneration_not_unlocked";
     }else if(injury.kind==="organ"){
       if(profile.organRepair){repair=level>=MASTERY.advanced?"full":"partial";reason="organ_repair"}
     }else if(injury.kind==="systemic"){
