@@ -10,6 +10,8 @@ const v7App = fs.readFileSync("core/v7-app.js", "utf8");
 const v7Data = fs.readFileSync("core/v7-data.js", "utf8");
 const v8State = fs.readFileSync("core/v8-state.js", "utf8");
 const v8App = fs.readFileSync("core/v8-app.js", "utf8");
+const v8RctModel = fs.readFileSync("core/v8-rct-model.js", "utf8");
+const v8Rct = fs.readFileSync("core/v8-rct.js", "utf8");
 
 for (const runtime of [
   "./patches/v5.js",
@@ -17,7 +19,9 @@ for (const runtime of [
   "./core/v7-data.js",
   "./core/v7-app.js",
   "./core/v8-state.js",
-  "./core/v8-app.js"
+  "./core/v8-rct-model.js",
+  "./core/v8-app.js",
+  "./core/v8-rct.js"
 ]) assert.ok(index.includes(runtime), `index missing ${runtime}`);
 
 for (const legacy of [
@@ -30,18 +34,23 @@ for (const legacy of [
 
 assert.ok(readme.includes("core/v7-model.js"));
 assert.ok(readme.includes("core/v8-state.js"));
+assert.ok(readme.includes("core/v8-rct-model.js"));
 assert.ok(readme.includes("GitHub Actions"));
 assert.ok(!readme.includes("current → v3 → v3b → v4 → v5"));
 
 assert.ok(!v7App.includes("setInterval("), "v7-app must not permanently poll with setInterval");
 assert.ok(!v7Data.includes("setInterval("), "v7-data must not permanently poll with setInterval");
 assert.ok(!v8App.includes("setInterval("), "v8-app must not permanently poll with setInterval");
+assert.ok(!v8Rct.includes("setInterval("), "v8-rct must not permanently poll with setInterval");
 assert.ok(v7App.includes("jjk-life-wheel-sl-slot-v1-"), "legacy SL migration prefix missing");
 assert.ok(v7App.includes("JJKV7Lifecycle"), "V7 lifecycle bridge missing");
 assert.ok(v8State.includes("WORLD_FLAG_KEYS"), "V8 core world flags missing");
 assert.ok(v8State.includes("validateConsistency"), "V8 consistency validator missing");
 assert.ok(v8App.includes("v8CriticalShibuyaIntent"), "V8 critical choice framework missing");
 assert.ok(v8App.includes("命运面板"), "V8 destiny panel missing");
-assert.ok(index.includes("JJK Life Wheel V8"), "V8 branding missing from launcher");
+assert.ok(v8RctModel.includes("treatmentPlan"), "V8.1 RCT treatment model missing");
+assert.ok(v8Rct.includes("buildDuelActionPool"), "V8.1 RCT battle pool integration missing");
+assert.ok(v8Rct.includes("applyDuelActionEffect"), "V8.1 RCT settlement integration missing");
+assert.ok(index.includes("JJK Life Wheel · V8.1"), "V8.1 branding missing from launcher");
 
 console.log("runtime structure checks passed");
