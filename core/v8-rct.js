@@ -20,8 +20,10 @@
   }
   function syncPlayerProfile(){
     const root=stateRoot();if(!root)return null;
-    const stats=currentStats(),text=lifeText();
-    const profile=R.deriveProfile({...stats,text,hasRct:/反转术式(?!外放|反转)/.test(text)||/反转术式外放|reverse[_\s-]?cursed[_\s-]?technique|\brct\b/i.test(text),externalOutput:/反转术式外放|反转输出|正能量外放|reverse[_\s-]?output|rct[_\s-]?output/i.test(text)});
+    const stats=currentStats(),text=lifeText(),advanced=asText(state?.flags?.advancedTechniques||[]);
+    const explicitRct=/反转术式|reverse[_\s-]?cursed[_\s-]?technique|\brct\b/i.test(advanced);
+    const denied=/无反转术式|未掌握反转术式|不会反转术式/.test(text);
+    const profile=R.deriveProfile({...stats,text,hasRct:explicitRct||(!denied&&/反转术式|reverse[_\s-]?cursed[_\s-]?technique|\brct\b/i.test(text)),externalOutput:/反转术式外放|反转输出|正能量外放|reverse[_\s-]?output|rct[_\s-]?output/i.test(advanced+" "+text)});
     const prev=root.rct?.profile;
     root.rct=root.rct||{history:[],treatments:[],treatedEvents:[]};
     root.rct.profile=profile;root.rct.version=VERSION;
@@ -69,20 +71,20 @@
     return tuneAction({id:"reverse_cursed_technique_heal",actionId:"reverse_cursed_technique_heal",label:"反转术式疗伤",name:"反转术式疗伤",description:"把咒力反转为正向能量修复自身伤势。",cardType:"healing",type:"rct_healing",rctHealing:true,normalHandOnly:true,tags:["反转术式","rct","正能量","疗伤","治疗","支援","resource"],requiresCe:true,requirements:{requiresMissingHp:true},apCost:1,cost:{ce:20},ceCost:20,healing:20,baseHealing:20,block:5,stabilityRestore:10,durationRounds:1,damageType:"none",scalingProfile:"healing",accuracyProfile:"none",evasionAllowed:false,effect:{incomingHpScale:.9,stabilityDelta:.024},effects:{incomingHpScale:.9,stabilityDelta:.024},risk:"medium",rarity:"uncommon",weight:6.1,logTemplate:"你使用反转术式疗伤，把咒力转为正向能量修复伤势。",v8Injected:true},actor);
   }
   function installPool(){
-    const m=globalThis.JJKDuelActions,f=m?.buildDuelActionPool;if(typeof f!=="function"||f.__v8Rct)return false;
+    const m=globalThis.JJKDuelActions,f=m?.buildDuelActionPool;if(typeof f!=="function")return false;if(f.__v8Rct)return true;
     const w=function(actor,opponent,duelState){
       const out=f.apply(this,arguments),list=Array.isArray(out)?out.map(a=>tuneAction(a,actor)):out;if(!Array.isArray(list))return list;
       const p=actorProfile(actor),view=resourceView(actor);if(p.hasRct&&view.maxHp>0&&view.hp<view.maxHp&&!list.some(isHeal)){const h=makeHeal(actor);if(h)list.push(h)}return list;
     };Object.defineProperty(w,"__v8Rct",{value:true});m.buildDuelActionPool=w;return true;
   }
   function installAvailability(){
-    const m=globalThis.JJKDuelActions,f=m?.getDuelActionAvailability;if(typeof f!=="function"||f.__v8Rct)return false;
+    const m=globalThis.JJKDuelActions,f=m?.getDuelActionAvailability;if(typeof f!=="function")return false;if(f.__v8Rct)return true;
     const w=function(action,actor,opponent,duelState){const tuned=tuneAction(action,actor),out=f.call(this,tuned,actor,opponent,duelState);if(isHeal(tuned)&&actorProfile(actor).hasRct){const plan=R.healPlan(actorProfile(actor),resourceView(actor));if(plan.reason==="full_hp")return{available:false,reason:"体势已满",costCe:plan.ceCost};if(!plan.available)return{available:false,reason:"咒力不足以发动反转术式疗伤",costCe:plan.ceCost};if(out?.available===false&&/反转|rct|资格|requires/i.test(String(out.reason||"")))return{available:true,reason:"",costCe:plan.ceCost}}return out};
     Object.defineProperty(w,"__v8Rct",{value:true});m.getDuelActionAvailability=w;return true;
   }
   function battleOf(duelState){return duelState?.left||duelState?.right?duelState:(typeof state!=="undefined"?state.duelBattle:null)}
   function installCpu(){
-    const m=globalThis.JJKDuelActions,f=m?.getDuelCpuAction;if(typeof f!=="function"||f.__v8Rct)return false;
+    const m=globalThis.JJKDuelActions,f=m?.getDuelCpuAction;if(typeof f!=="function")return false;if(f.__v8Rct)return true;
     const w=function(actor,opponent,duelState){
       const old=f.apply(this,arguments),p=actorProfile(actor),view=resourceView(actor),battle=battleOf(duelState);if(!p.hasRct||!R.shouldCpuHeal(p,view,resourceView(opponent)))return old;
       const round=Number(battle?.round||0),last=Number(battle?.v8RctLastHealRound?.[actor?.side]??-99);if(round-last<2&&view.hp/Math.max(1,view.maxHp)>.2)return old;
@@ -91,7 +93,7 @@
     };Object.defineProperty(w,"__v8Rct",{value:true});m.getDuelCpuAction=w;return true;
   }
   function installApply(){
-    const m=globalThis.JJKDuelActions,f=m?.applyDuelActionEffect;if(typeof f!=="function"||f.__v8Rct)return false;
+    const m=globalThis.JJKDuelActions,f=m?.applyDuelActionEffect;if(typeof f!=="function")return false;if(f.__v8Rct)return true;
     const w=function(action,actor,opponent,duelState){const tuned=tuneAction(action,actor),out=f.call(this,tuned,actor,opponent,duelState);if(isHeal(tuned)){const b=battleOf(duelState);if(b){b.v8RctLastHealRound=b.v8RctLastHealRound||{};b.v8RctLastHealRound[actor?.side||"left"]=Number(b.round||0);b.v8RctLog=b.v8RctLog||[];b.v8RctLog.unshift({round:Number(b.round||0)+1,side:actor?.side||"",mastery:tuned.v8RctMastery||"basic",healing:Number(tuned.healing||0),ceCost:Number(tuned.ceCost||0)});if(b.v8RctLog.length>30)b.v8RctLog.length=30}}return out};
     Object.defineProperty(w,"__v8Rct",{value:true});m.applyDuelActionEffect=w;return true;
   }
@@ -111,14 +113,14 @@
     else if(plan.available&&plan.repair==="partial")notify("反转术式稳定伤势",`${plan.injury.label}得到处理，但没有无条件抹去永久后果。${plan.injury.kind==="soul"?"灵魂损伤仍然残留。":""}`);
   }
   function installLifeHook(){
-    const wheel=globalThis.JJKPersonalWheel,f=wheel?.afterCommit;if(typeof f!=="function"||f.__v8Rct)return false;
+    const wheel=globalThis.JJKPersonalWheel,f=wheel?.afterCommit;if(typeof f!=="function")return false;if(f.__v8Rct)return true;
     const w=function(payload){const out=f.apply(this,arguments);try{const event=`${payload?.task?.title||""} ${payload?.result?.text||payload?.result?.option?.text||payload?.result?.result||""}`;syncPlayerProfile();processTreatment(event);setTimeout(enrichDestinyPanel,0)}catch(e){console.warn("[JJK V8.1 RCT] life hook",e)}return out};Object.defineProperty(w,"__v8Rct",{value:true});wheel.afterCommit=w;return true;
   }
   function enrichDestinyPanel(){
     const card=document.querySelector("#jjkV8Panel .v8-card");if(!card||card.querySelector("[data-v8-rct]"))return;const p=syncPlayerProfile(),s=document.createElement("section");s.dataset.v8Rct="1";const treatment=stateRoot()?.rct?.treatments?.at(-1);s.innerHTML=`<h3>反转术式</h3><p>${p?.hasRct?`<b>${p.masteryLabel}</b>｜自愈：可用｜战斗再生：${p.combatRegen?"可用":"未解锁"}｜外放：${p.externalOutput?"可用":"未解锁"}<br>器官修复：${p.organRepair?"可":"否"}｜断肢再生：${p.limbRepair?"可":"否"}｜术式熔断修复：${p.burnoutRepair?"可":"否"}`:"未掌握"}${treatment?`<br><span style="opacity:.72">最近治疗：${treatment.injury?.label||"伤势"}｜${treatment.repair==="full"?"完全修复":treatment.repair==="partial"?"部分稳定":"无法修复"}</span>`:""}</p>`;card.appendChild(s)
   }
   document.addEventListener("click",e=>{if(e.target?.id==="jjkV8DestinyBtn"||e.target?.closest?.("#jjkV8DestinyBtn"))setTimeout(enrichDestinyPanel,0)},true);
-  function install(){syncPlayerProfile();const ok=[installPool(),installAvailability(),installCpu(),installApply(),installLifeHook()];globalThis.JJK_V8_RCT_VERSION=VERSION;return ok.some(Boolean)||ok.every(Boolean)}
+  function install(){syncPlayerProfile();const ok=[installPool(),installAvailability(),installCpu(),installApply(),installLifeHook()];globalThis.JJK_V8_RCT_VERSION=VERSION;return ok.every(Boolean)}
   let tries=0;function boot(){try{if(install()){console.info(`[JJK V8.1 RCT] ${VERSION} loaded`);return}}catch(e){console.warn("[JJK V8.1 RCT] boot",e)}if(tries++<30)setTimeout(boot,180)}boot();
   globalThis.JJKV8RCT=Object.freeze({version:VERSION,getPlayerProfile:()=>clone(syncPlayerProfile()),profileForActor:a=>clone(actorProfile(a)),healPlan:a=>R.healPlan(actorProfile(a),resourceView(a)),treatmentPlan:(text,res)=>R.treatmentPlan(syncPlayerProfile()||{},text,res||lastBattleResource()),enrichDestinyPanel});
 })();
