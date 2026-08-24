@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111114">
+  <title>JJK Life Wheel</title>
+  <style>
+    :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;min-height:100svh;display:grid;place-items:center;background:#0d0d10;color:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:24px}.card{width:min(620px,100%);padding:28px;border:1px solid #33333b;border-radius:22px;background:#17171c;box-shadow:0 20px 80px #0008}h1{margin:0 0 8px;font-size:28px}.muted{color:#aaaab5;line-height:1.65}.status{margin:22px 0;padding:16px;border-radius:14px;background:#202028}.ok{color:#9be29b}.warn{color:#ffd37a}a{color:#d9b8ff}.spinner{width:26px;height:26px;border:3px solid #444;border-top-color:#eee;border-radius:50%;animation:r 1s linear infinite;margin:14px 0}@keyframes r{to{transform:rotate(360deg)}}
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>呪 · JJK Life Wheel</h1>
+    <p class="muted">正在检查当前稳定版……</p>
+    <div class="spinner" id="spinner"></div>
+    <div class="status" id="status">读取 <code>game.html</code></div>
+    <p class="muted">仓库：<a href="https://github.com/langdu24/JJK-Life-Wheel">langdu24/JJK-Life-Wheel</a></p>
+  </main>
+<script>
+(async()=>{
+  const status=document.getElementById('status');
+  const spinner=document.getElementById('spinner');
+  try{
+    const r=await fetch('./game.html',{method:'HEAD',cache:'no-store'});
+    if(r.ok){
+      status.className='status ok';
+      status.textContent='稳定版已就绪，正在进入游戏……';
+      location.replace('./game.html');
+      return;
+    }
+    throw new Error('game.html 尚未上传');
+  }catch(e){
+    spinner.hidden=true;
+    status.className='status warn';
+    status.innerHTML='在线入口已经部署，但当前稳定版 <code>game.html</code> 还未进入仓库。上传后本页面会自动进入游戏。';
+  }
+})();
+</script>
+</body>
+</html>
