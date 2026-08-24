@@ -1,118 +1,34 @@
-(() => {
-  "use strict";
-
-  const PATCH_VERSION = "2026-08-24-toji-burst-v1";
-  const TOJI_HEAVY_TOOL_IDS = new Set([
-    "card_inverted_spear_of_heaven_pierce",
-    "card_chain_of_thousand_miles_bind",
-    "card_soul_split_katana_slash"
-  ]);
-  const TOJI_RUNTIME_DAMAGE_SCALE = 0.82;
-
-  window.JJK_LIFE_WHEEL_PATCH_VERSION = PATCH_VERSION;
-
-  function cloneAction(action) {
-    try {
-      return typeof structuredClone === "function"
-        ? structuredClone(action)
-        : JSON.parse(JSON.stringify(action));
-    } catch {
-      return { ...action, effect: { ...(action?.effect || {}) }, effects: { ...(action?.effects || {}) } };
-    }
-  }
-
-  function actionId(action) {
-    return String(action?.id || action?.actionId || action?.cardId || "");
-  }
-
-  function isHiddenInventoryToji(actor) {
-    const profile = actor?.characterCardProfile || actor?.profile || actor || {};
-    const text = [
-      actor?.id,
-      actor?.name,
-      profile?.id,
-      profile?.characterId,
-      profile?.name,
-      profile?.displayName,
-      ...(profile?.traits || []),
-      ...(profile?.cardTags || []),
-      ...(profile?.specialHandTags || [])
-    ].filter(Boolean).join(" ");
-    return /toji_fushiguro_hidden_inventory|伏黑甚尔（怀玉|伏黑甚尔.*完整咒具/i.test(text);
-  }
-
-  function scaleDirectDamage(action, scale) {
-    const next = cloneAction(action);
-    const scaleNumber = (obj, key) => {
-      if (!obj || !Number.isFinite(Number(obj[key]))) return;
-      obj[key] = Number((Number(obj[key]) * scale).toFixed(3));
-    };
-    scaleNumber(next, "damage");
-    scaleNumber(next.effect, "damage");
-    scaleNumber(next.effects, "damage");
-    return next;
-  }
-
-  function patchRuntimeData() {
-    if (typeof state === "undefined") return false;
-
-    // 旧版 460 HP 硬上限会把 EX/EX- 肉体和标准特级压成同一血条。
-    // 提高硬上限，不凭空给低体质角色加血，只允许高面板继续兑现。
-    if (state.duelResourceRules?.hp) {
-      state.duelResourceRules.hp.max = Math.max(Number(state.duelResourceRules.hp.max || 0), 680);
-    }
-
-    // 甚尔三张完整咒具重击原本都是 AP1，可在基础 AP2 下一回合连续轰两张，
-    // 配合零咒力咒具倍率很容易形成两回合固定秒杀。改成重击 AP2。
-    const cards = state.duelSpecialCards?.cards || state.battleCards?.cards || [];
-    for (const card of cards) {
-      if (!TOJI_HEAVY_TOOL_IDS.has(String(card?.id || ""))) continue;
-      card.cost ||= {};
-      card.cost.ap = Math.max(2, Number(card.cost.ap || 0));
-      card.hotfix ||= {};
-      card.hotfix.tojiBurstV1 = true;
-    }
-
-    try { globalThis.JJKDuelActions?.invalidateDuelActionTemplateCache?.(); } catch {}
-    try { globalThis.JJKDuelActions?.invalidateDuelActionChoices?.(state.duelBattle); } catch {}
-    return true;
-  }
-
-  function patchActionRuntime() {
-    const api = globalThis.JJKDuelActions;
-    if (!api || typeof api.applyDuelActionEffect !== "function") return false;
-    if (api.applyDuelActionEffect.__jjkTojiBurstV1) return true;
-
-    const original = api.applyDuelActionEffect;
-    const wrapped = function patchedApplyDuelActionEffect(action, actor, opponent, duelState) {
-      let runtimeAction = action;
-      if (isHiddenInventoryToji(actor) && TOJI_HEAVY_TOOL_IDS.has(actionId(action))) {
-        // 只削怀玉完整咒具甚尔的连续爆发，不削玩家抽到同一咒具时的伤害。
-        runtimeAction = scaleDirectDamage(action, TOJI_RUNTIME_DAMAGE_SCALE);
-      }
-      return original.call(this, runtimeAction, actor, opponent, duelState);
-    };
-    Object.defineProperty(wrapped, "__jjkTojiBurstV1", { value: true });
-    api.applyDuelActionEffect = wrapped;
-    return true;
-  }
-
-  function install() {
-    const dataReady = patchRuntimeData();
-    const actionReady = patchActionRuntime();
-    if (dataReady && actionReady) {
-      console.info(`[JJK-Life-Wheel] patch loaded: ${PATCH_VERSION}`);
-      document.documentElement.dataset.jjkGithubPatch = PATCH_VERSION;
-      return true;
-    }
-    return false;
-  }
-
-  if (!install()) {
-    let attempts = 0;
-    const timer = setInterval(() => {
-      attempts += 1;
-      if (install() || attempts >= 120) clearInterval(timer);
-    }, 250);
-  }
+(()=>{"use strict";
+const V="2026-08-24-balance-v2",DK="jjk-life-wheel-story-cpu-difficulty-v2",SK="jjk-duel-cpu-difficulty-v1",MAX=Number.MAX_SAFE_INTEGER;
+const TOJI=new Set(["card_inverted_spear_of_heaven_pierce","card_chain_of_thousand_miles_bind","card_soul_split_katana_slash"]),TS=.84,TC=.28;
+const INC=.24,DEC=.55,ST={cursedEnergy:["咒力总量","cursedEnergyScore"],control:["咒力操纵","controlScore"],efficiency:["咒力效率","efficiencyScore"],body:["体质","bodyScore"],martial:["体术","martialScore"],talent:["天赋","talentScore"]};
+window.JJK_LIFE_WHEEL_PATCH_VERSION=V;
+const norm=x=>["easy","normal","hard"].includes(String(x||"").trim().toLowerCase())?String(x).trim().toLowerCase():"normal";
+const getD=()=>{try{return norm(localStorage.getItem(DK)||"normal")}catch{return"normal"}};
+const setD=x=>{x=norm(x);try{localStorage.setItem(DK,x);localStorage.setItem(SK,x)}catch{}return x};
+const story=o=>String(o?.activityContext?.type||"")==="lifeWheelBattleBridge";
+const aid=a=>String(a?.id||a?.actionId||a?.cardId||"");
+const txt=a=>{let p=a?.characterCardProfile||a?.profile||a||{};return[a?.id,a?.name,p?.id,p?.characterId,p?.name,p?.displayName,...(p?.traits||[]),...(p?.cardTags||[]),...(p?.specialHandTags||[])].filter(Boolean).join(" ")};
+const isToji=a=>/toji_fushiguro_hidden_inventory|伏黑甚尔（怀玉|伏黑甚尔.*完整咒具/i.test(txt(a));
+const unit=r=>Number(r?.combatPowerUnit?.value||r?.characterCardProfile?.combatPowerUnit?.value||r?.profile?.combatPowerUnit?.value||0);
+const peer=(a,d)=>{if(!a||!d)return false;let au=unit(a),du=unit(d);if(au>0&&du>0)return du>=au*.62;return Math.max(1,Number(d.maxHp||d.hp||1))>=Math.max(1,Number(a.maxHp||a.hp||1))*.62};
+function clone(a){try{return structuredClone(a)}catch{try{return JSON.parse(JSON.stringify(a))}catch{return{...a}}}}
+function tuneAction(a,actor,opp){let n=clone(a),mul=o=>{if(o&&Number.isFinite(Number(o.damage)))o.damage=Number((Number(o.damage)*TS).toFixed(3))},cap=o=>{if(o&&Number.isFinite(Number(o.damage)))o.damage=Number(Math.min(Number(o.damage),Math.max(1,Number(opp?.maxHp||opp?.hp||1))*TC).toFixed(3))};mul(n);mul(n.effect);mul(n.effects);if(peer(actor,opp)){cap(n);cap(n.effect);cap(n.effects)}n.cost||={};n.cost.ap=Math.max(2,Number(n.cost.ap||n.apCost||0));n.apCost=Math.max(2,Number(n.apCost||n.cost.ap||0));return n}
+function rules(){if(typeof state==="undefined")return false;if(state.duelResourceRules?.hp)state.duelResourceRules.hp.max=MAX;if(state.duelResourceRules?.ce)state.duelResourceRules.ce.max=MAX;let c=state.techniqueHandRules?.cpuDifficulty;if(c?.options){c.default="normal";c.options.normal={...(c.options.normal||{}),label:"普通：稳定",beamWidth:2,scoreNoise:.035,mistakeRate:.05,mistakePool:2};c.options.hard={...(c.options.hard||{}),label:"困难：强规划",beamWidth:5,scoreNoise:0,mistakeRate:0,mistakePool:1}}let cards=state.duelSpecialCards?.cards||state.battleCards?.cards||[];for(let x of cards)if(TOJI.has(String(x?.id||""))){x.cost||={};x.cost.ap=Math.max(2,Number(x.cost.ap||x.apCost||0));x.apCost=Math.max(2,Number(x.apCost||x.cost.ap||0))}try{JJKDuelActions?.invalidateDuelActionTemplateCache?.()}catch{}return true}
+function ui(){if(document.documentElement.dataset.jjkDiffV2===V)return true;document.documentElement.dataset.jjkDiffV2=V;try{if(!localStorage.getItem(DK))setD("normal")}catch{setD("normal")}document.addEventListener("change",e=>{let t=e.target;if(!(t instanceof HTMLSelectElement)||t.id!=="duelCpuDifficultySelect")return;if(e.isTrusted)setD(t.value);else if(norm(t.value)==="hard")t.value=getD()},true);let s=document.querySelector("#duelCpuDifficultySelect");if(s)s.value=getD();return true}
+function startPatch(){let f=globalThis.startDuelBattle;if(typeof f!=="function")return false;if(f.__balV2)return true;let o=f,w=function(opt={}){let n=opt;if(story(opt)){rules();n={...opt,cpuDifficulty:getD(),left:applyTrans(opt.left)}}let r=o.call(this,n);if(story(n)&&state?.duelBattle){let s=document.querySelector("#duelCpuDifficultySelect");if(s)s.value=getD();state.duelBattle.cpuDifficulty=getD();state.duelBattle.cpuDifficultyLabel=s?.selectedOptions?.[0]?.textContent||getD()}return r};Object.defineProperty(w,"__balV2",{value:true});globalThis.startDuelBattle=w;return true}
+function tojiPatch(){let a=globalThis.JJKDuelActions;if(!a||typeof a.applyDuelActionEffect!=="function")return false;if(a.applyDuelActionEffect.__balV2)return true;let o=a.applyDuelActionEffect,w=function(ac,x,y,b){return o.call(this,isToji(x)&&TOJI.has(aid(ac))?tuneAction(ac,x,y):ac,x,y,b)};Object.defineProperty(w,"__balV2",{value:true});a.applyDuelActionEffect=w;return true}
+function map(){if(typeof state==="undefined")return{};state.flags||={};return state.flags.battleBridgeTranscendence||=({})}
+const steps=id=>Math.max(0,Math.trunc(Number(map()[id]||0))),one=n=>INC/(1+DEC*(Math.max(1,n)-1));
+function sum(n){let s=0;for(let i=1;i<=Math.max(0,Math.trunc(n));i++)s+=one(i);return Number(s.toFixed(6))}
+function base(id){let v=state?.flags?.battleBridgePersistentRanks?.[id]||state?.answers?.[id]?.rawText||state?.answers?.[id]?.text||state?.answers?.[id]?.result||"";return String(v).match(/^(EX-|EX|SSS|SS|S|A|B|C|D|E-|E)/)?.[1]||""}
+const lab=(id,n=steps(id))=>n>0?`EX+${n}`:"EX";
+function grow(t){if(!t||String(t.battleBridgeType||"")!=="growthContent"||t.__tv2)return t;t.__tv2=true;t.options||=[];let z=false;try{z=!!globalThis.isZeroCursedEnergyHeavenlyRestriction?.()}catch{}let ex=[t?.battleBridgeMeta?.endDetail,t?.battleBridgeMeta?.opponent,...(t?.battleBridgeMeta?.battleLogTail||[])].filter(Boolean).join(" ");for(let[id,[name]]of Object.entries(ST)){if(base(id)!=="EX"||(z&&["cursedEnergy","control","efficiency"].includes(id)))continue;let a=steps(id),n=a+1,inc=one(n),b=0;if(id==="martial"&&/近身|体术|拳|踢|肉搏|咒具/.test(ex))b+=1.2;if(id==="body"&&/重伤|濒死|体势|肉搏/.test(ex))b+=1;if(["control","efficiency","cursedEnergy"].includes(id)&&/咒力|术式|领域|结界/.test(ex))b+=1;t.options.push({text:`${name}超越极限｜${lab(id,a)} → ${lab(id,n)}｜有效增幅 +${inc.toFixed(3)}阶`,weight:Math.max(.35,(4.2+b)/(1+a*.38)),bridgeEffect:{type:"transcend",nodeId:id,delta:1,label:name,increment:inc}})}return t}
+function queue(){if(typeof state==="undefined"||!Array.isArray(state.taskQueue))return false;let q=state.taskQueue;if(!q.__tv2){let u=Array.prototype.unshift;Object.defineProperty(q,"__tv2",{value:true,configurable:true});Object.defineProperty(q,"unshift",{configurable:true,writable:true,value:function(...x){x.forEach(grow);return u.apply(this,x)}})}q.forEach(grow);grow(state.currentTask);return true}
+function applyTrans(p){if(!p||typeof p!=="object")return p;let m=map(),any=Object.keys(ST).some(k=>Number(m[k]||0)>0);if(!any)return p;let n=clone(p);n.raw||={};n.axes||={};let b={};for(let[id,[,f]]of Object.entries(ST)){b[id]=sum(m[id]);if(b[id]>0)n.raw[f]=Number(n.raw[f]||0)+b[id]}n.axes.jujutsu=Number(n.axes.jujutsu||0)+b.cursedEnergy*.5+b.control*.27+b.efficiency*.23;n.axes.body=Number(n.axes.body||0)+b.body*.54+b.martial*.46;n.axes.insight=Number(n.axes.insight||0)+b.talent*.72+b.control*.16+b.martial*.12;n.notes=`${n.notes||""}｜超越极限：${Object.entries(m).filter(([,v])=>Number(v)>0).map(([id,v])=>`${ST[id][0]}${lab(id,v)}（+${sum(v).toFixed(3)}阶）`).join("、")}`;return n}
+function commit(p){let t=p?.task,r=p?.result;if(String(t?.battleBridgeType||"")!=="growthContent")return;let e=r?.option?.bridgeEffect||t?.options?.find(x=>x.text===r?.text)?.bridgeEffect;if(e?.type!=="transcend"||!ST[e.nodeId])return;let m=map(),a=steps(e.nodeId),n=a+Math.max(1,Math.trunc(Number(e.delta||1)));m[e.nodeId]=n;let rec=(state.records||[]).find(x=>Number(x?.id)===Number(p?.recordId)),inc=one(n),tot=sum(n);if(rec)rec.result+=`｜超越层：${lab(e.nodeId,n)}｜本次+${inc.toFixed(3)}阶｜累计+${tot.toFixed(3)}阶`;try{globalThis.saveLifeWheelRunDraft?.()}catch{}}
+function hooks(){let w=globalThis.JJKPersonalWheel;if(!w||!globalThis.JJKBattleStoryBridge)return false;if(typeof w.afterCommit==="function"&&!w.afterCommit.__tv2){let o=w.afterCommit,f=function(p){try{queue()}catch{}let r=o.call(this,p);try{commit(p)}catch(e){console.error("超越成长结算失败",e)}return r};Object.defineProperty(f,"__tv2",{value:true});w.afterCommit=f}if(typeof w.onRestart==="function"&&!w.onRestart.__tv2){let o=w.onRestart,f=function(...a){let r=o.apply(this,a);try{delete state.flags.battleBridgeTranscendence;setTimeout(()=>queue(),0)}catch{}return r};Object.defineProperty(f,"__tv2",{value:true});w.onRestart=f}return true}
+function audit(){if(document.documentElement.dataset.jjkAuditV2)return true;document.documentElement.dataset.jjkAuditV2="1";document.addEventListener("jjk-duel-battle-ended",e=>{try{let b=e?.detail?.battle||state?.duelBattle;if(!story(b))return;let l=b?.resourceState?.p1||{},r=b?.resourceState?.p2||{};state.flags.battleBalanceAudit||=[];state.flags.battleBalanceAudit.push({at:new Date().toISOString(),won:b?.winnerSide==="left"||(Number(r.hp)<=0&&Number(l.hp)>0),difficulty:b?.cpuDifficulty||getD(),rounds:Number(b?.endingRound||b?.round||0),playerHp:Number(l.hp||0),playerMaxHp:Number(l.maxHp||0),opponentHp:Number(r.hp||0),opponentMaxHp:Number(r.maxHp||0),opponent:b?.activityContext?.opponent||r?.name||"",playerUnit:unit(l),opponentUnit:unit(r)});if(state.flags.battleBalanceAudit.length>40)state.flags.battleBalanceAudit.shift()}catch{}});return true}
+function install(){let ok=[rules(),ui(),startPatch(),tojiPatch(),queue(),hooks(),audit()].every(Boolean);if(ok){document.documentElement.dataset.jjkGithubPatch=V;console.info(`[JJK-Life-Wheel] patch loaded: ${V}`)}return ok}
+let k=0,t=setInterval(()=>{if(install()||++k>=240)clearInterval(t)},250);install();
 })();
