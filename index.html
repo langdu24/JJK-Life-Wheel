@@ -13,37 +13,19 @@
   <section id="boot"><main class="card"><h1>呪 · JJK Life Wheel</h1><p class="muted">正在载入当前稳定版与补丁层……</p><div class="spinner" id="spinner"></div><div class="status" id="status">定位游戏文件……</div><p class="muted">仓库：<a href="https://github.com/langdu24/JJK-Life-Wheel">langdu24/JJK-Life-Wheel</a></p></main></section>
 <script>
 (async()=>{
-  const boot=document.getElementById('boot');
-  const status=document.getElementById('status');
-  const spinner=document.getElementById('spinner');
+  const boot=document.getElementById('boot'),status=document.getElementById('status'),spinner=document.getElementById('spinner');
   const candidates=['./game.html','./%20game.html'];
   let gameUrl='';
-  for(const candidate of candidates){
-    try{
-      const r=await fetch(candidate,{method:'HEAD',cache:'no-store'});
-      if(r.ok){gameUrl=candidate;break;}
-    }catch{}
-  }
-  if(!gameUrl){
-    spinner.hidden=true;
-    status.className='status warn';
-    status.textContent='没有找到游戏文件。请确认仓库根目录存在 game.html。';
-    return;
-  }
+  for(const candidate of candidates){try{const r=await fetch(candidate,{method:'HEAD',cache:'no-store'});if(r.ok){gameUrl=candidate;break}}catch{}}
+  if(!gameUrl){spinner.hidden=true;status.className='status warn';status.textContent='没有找到游戏文件。请确认仓库根目录存在 game.html。';return}
   status.textContent='正在载入游戏……';
-  const frame=document.createElement('iframe');
-  frame.id='game';
-  frame.title='JJK Life Wheel';
-  frame.src=gameUrl+'?v='+Date.now();
-  frame.allow='clipboard-read; clipboard-write';
+  const frame=document.createElement('iframe');frame.id='game';frame.title='JJK Life Wheel';frame.src=gameUrl+'?v='+Date.now();frame.allow='clipboard-read; clipboard-write';
   frame.addEventListener('load',()=>{
     try{
       const doc=frame.contentDocument;
-      const patch=doc.createElement('script');
-      patch.src='./patches/current.js?v='+Date.now();
-      patch.dataset.jjkGithubPatch='current';
-      doc.head.appendChild(patch);
-    }catch(err){console.warn('[JJK-Life-Wheel] patch injection failed',err);}
+      const loadPatch=(src,tag,next)=>{const s=doc.createElement('script');s.src=src+'?v='+Date.now();s.dataset.jjkGithubPatch=tag;s.onload=()=>next?.();s.onerror=()=>{console.warn('[JJK-Life-Wheel] patch load failed',src);next?.()};doc.head.appendChild(s)};
+      loadPatch('./patches/current.js','current',()=>loadPatch('./patches/v3.js','v3'));
+    }catch(err){console.warn('[JJK-Life-Wheel] patch injection failed',err)}
     boot.remove();
   },{once:true});
   document.body.appendChild(frame);
