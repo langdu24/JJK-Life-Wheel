@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -20,31 +20,58 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Normalize game filename
+      - name: Verify clean source tree
         run: |
           set -e
-          if [ -f " game.html" ]; then
-            if [ -f game.html ]; then rm -f " game.html"; else mv " game.html" game.html; fi
-          fi
           test -f game.html
+          test ! -f " game.html"
           test -f index.html
+          test -f patches/v5.js
+          test -f core/v7-model.js
+          test -f core/v7-data.js
+          test -f core/v7-app.js
+          echo "game.html size: $(wc -c < game.html) bytes"
 
-      - name: Validate V7 JavaScript
+      - name: Normalize V7 source metadata
+        run: node scripts/normalize-v7-source.mjs game.html
+
+      - name: Commit source metadata normalization
         run: |
           set -e
+          if git diff --quiet -- game.html; then
+            echo "game.html metadata already normalized"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add game.html
+            git commit -m "chore: normalize game.html V7 metadata"
+            git push
+          fi
+
+      - name: Validate JavaScript
+        run: |
+          set -e
+          node --check core/v7-model.js
           node --check core/v7-data.js
           node --check core/v7-app.js
           node --check patches/v5.js
-          echo "V7 JavaScript syntax check passed."
+          node --check scripts/normalize-v7-source.mjs
+          node --check scripts/extract-embedded-data.mjs
+
+      - name: Run V7 tests
+        run: |
+          set -e
+          node tests/v7-model.test.js
+          node tests/verify-runtime.js
 
       - name: Deployment inventory
         run: |
-          ls -lh index.html game.html core/v7-data.js core/v7-app.js patches/v5.js
-          echo "game.html size: $(wc -c < game.html) bytes"
+          ls -lh index.html game.html core/v7-model.js core/v7-data.js core/v7-app.js patches/v5.js
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
