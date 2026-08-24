@@ -1,0 +1,92 @@
+{
+  "schema": "jjk-v7-extracted-data-manifest",
+  "generatedFrom": "game.html",
+  "sourceSha256": "647a737518a98fb34d0d5c83b212e0a38fc56fff551fdf863b24b695867f5b40",
+  "files": [
+    {
+      "path": "assets/duel-dynamics/card-skin-format.json",
+      "bytes": 1963,
+      "sha256": "123e320c4b6ea54076e7805c7e1c03dbd7a67a46733a9d8a478a8c953661d01b"
+    },
+    {
+      "path": "data/battle/cards.runtime.json",
+      "bytes": 121702,
+      "sha256": "b95a5191b35029a3cf8eaef5ec20b8de918d75d53e7aec2350e2541fb76fb220"
+    },
+    {
+      "path": "data/battle/characters.json",
+      "bytes": 88819,
+      "sha256": "eea64105cc15d298ff299b77c561b2720b68c8c706c6cd44b341768bb1ac6ec5"
+    },
+    {
+      "path": "data/battle/domains.json",
+      "bytes": 28009,
+      "sha256": "122c5321eb1ca32f499f3189820b7be143b5545cbf1a16cd1bea71a6eab0a801"
+    },
+    {
+      "path": "data/battle/rules.json",
+      "bytes": 3460,
+      "sha256": "fc7ffaa87ab9bcf6c940687e26dd8785ad95c2aa8cb19d6bac76f97edc07e9c2"
+    },
+    {
+      "path": "data/battle/runtime/action-templates.json",
+      "bytes": 8808,
+      "sha256": "63078a2c3d34534e36b3edac5914584b61077fd94eb68ba09d7d919e0c5cd295"
+    },
+    {
+      "path": "data/battle/runtime/beta-copy.json",
+      "bytes": 760,
+      "sha256": "a1e2951c5c27c55b7ce0eb448f405190ea4e3a60667168c21848119e848ee594"
+    },
+    {
+      "path": "data/battle/runtime/card-copy.json",
+      "bytes": 43957,
+      "sha256": "55221972c8e48e26ce94893c811b79a37cd464cefadf0cd351b855f327355c30"
+    },
+    {
+      "path": "data/battle/runtime/card-templates.json",
+      "bytes": 16751,
+      "sha256": "f45f9272bbee339db227ef2ff53a36f8ee5e80d483f3f2c7002bba4305d545e4"
+    },
+    {
+      "path": "data/battle/runtime/character-card-rules.json",
+      "bytes": 53294,
+      "sha256": "ee1139b7558ebdf8f6366cdffceeff543e6f00752b7214a3abed2b858065676e"
+    },
+    {
+      "path": "data/battle/runtime/end-rules.json",
+      "bytes": 602,
+      "sha256": "c140785fb8c3787812753e073d4eadb85247a66d9c41817e66112aff53942ddd"
+    },
+    {
+      "path": "data/battle/runtime/hand-injections.json",
+      "bytes": 7285,
+      "sha256": "a07e55650df012872e22df7c90fe2bc38011602ffe1e9d936828cdac20ad97cf"
+    },
+    {
+      "path": "data/battle/runtime/hand-rules.json",
+      "bytes": 2095,
+      "sha256": "2844f3bee18349d881da7f788dcf73a6bb0ad9f57cafe808bc3c57cc1fdf95dd"
+    },
+    {
+      "path": "data/battle/runtime/mechanic-templates.json",
+      "bytes": 13218,
+      "sha256": "fe11b1ea6dc64723c5eee9f1d9463a56545a453bde2d5124aebea2d612b9d33b"
+    },
+    {
+      "path": "data/battle/runtime/resource-rules.json",
+      "bytes": 3770,
+      "sha256": "a2e515aff6fead0c2c84de71e8ba5e39d80114f61b65b975c433b43f657fbdda"
+    },
+    {
+      "path": "data/battle/runtime/trial-target-rules.json",
+      "bytes": 13360,
+      "sha256": "88ac1ae533047c52080076fcbdaa9dadd18b91313167d8dcd75d0e24b48d45ca"
+    },
+    {
+      "path": "data/battle/special-abilities.json",
+      "bytes": 20261,
+      "sha256": "c30129baa5056fea97f4f4bcd85b0366d0ec4cff4c2184d7d4e904fdba5031c3"
+    }
+  ]
+}
