@@ -36,7 +36,9 @@ jobs:
           test -f core/v7-data.js
           test -f core/v7-app.js
           test -f core/v8-state.js
+          test -f core/v8-rct-model.js
           test -f core/v8-app.js
+          test -f core/v8-rct.js
           echo "game.html size: $(wc -c < game.html) bytes"
 
       - name: Normalize source metadata
@@ -87,7 +89,9 @@ jobs:
           node --check core/v7-data.js
           node --check core/v7-app.js
           node --check core/v8-state.js
+          node --check core/v8-rct-model.js
           node --check core/v8-app.js
+          node --check core/v8-rct.js
           node --check patches/v5.js
           node --check scripts/normalize-v7-source.mjs
           node --check scripts/extract-embedded-data.mjs
@@ -97,11 +101,12 @@ jobs:
           set -e
           node tests/v7-model.test.js
           node tests/v8-state.test.js
+          node tests/v8-rct.test.js
           node tests/verify-runtime.js
 
       - name: Deployment inventory
         run: |
-          ls -lh index.html game.html core/v7-model.js core/v7-data.js core/v7-app.js core/v8-state.js core/v8-app.js patches/v5.js data/extracted-v7/manifest.json
+          ls -lh index.html game.html core/v7-model.js core/v7-data.js core/v7-app.js core/v8-state.js core/v8-rct-model.js core/v8-app.js core/v8-rct.js patches/v5.js data/extracted-v7/manifest.json
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
