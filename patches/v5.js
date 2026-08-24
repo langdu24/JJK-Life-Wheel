@@ -152,8 +152,32 @@
     return true;
   }
 
+  function installBattleTimeoutGuard() {
+    const bridge = globalThis.JJKBattleStoryBridge;
+    const current = bridge?.autoResolveCurrentTask;
+    if (typeof current !== "function") return false;
+    if (current.__jjkFlowStabilityV5) return true;
+    const wrapped = async function (...args) {
+      const result = await current.apply(this, args);
+      if (result?.timedOut) {
+        try { globalThis.JJKDuelRuntime?.clearCurrentDuelBattle?.({ render: false }); } catch {}
+        if (typeof state !== "undefined") {
+          state.isSpinning = false;
+          state.spinModeSnapshot = null;
+          state.pendingResult = null;
+          state.spinToken = Number(state.spinToken || 0) + 1;
+        }
+        throw new Error("剧情实战代理超时，已恢复原剧情节点");
+      }
+      return result;
+    };
+    Object.defineProperty(wrapped, "__jjkFlowStabilityV5", { value: true });
+    bridge.autoResolveCurrentTask = wrapped;
+    return true;
+  }
+
   function install() {
-    const ready = installAdvanceGuard() && installStoryHook();
+    const ready = installAdvanceGuard() && installStoryHook() && installBattleTimeoutGuard();
     const changed = scrubRemovedCoinItem() || recoverCompletedAutoLife();
     if (changed) {
       try { globalThis.saveLifeWheelRunDraft?.(); } catch {}
