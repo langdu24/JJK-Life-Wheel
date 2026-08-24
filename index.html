@@ -14,20 +14,49 @@
 <script>
 (async()=>{
   const boot=document.getElementById('boot'),status=document.getElementById('status'),spinner=document.getElementById('spinner');
-  const candidates=['./game.html','./%20game.html'];
-  let gameUrl='';
-  for(const candidate of candidates){try{const r=await fetch(candidate,{method:'HEAD',cache:'no-store'});if(r.ok){gameUrl=candidate;break}}catch{}}
-  if(!gameUrl){spinner.hidden=true;status.className='status warn';status.textContent='没有找到游戏文件。请确认仓库根目录存在 game.html。';return}
-  status.textContent='正在载入游戏……';
-  const frame=document.createElement('iframe');frame.id='game';frame.title='JJK Life Wheel';frame.src=gameUrl+'?v='+Date.now();frame.allow='clipboard-read; clipboard-write';
-  frame.addEventListener('load',()=>{
-    try{
-      const doc=frame.contentDocument;
-      const loadPatch=(src,tag,next)=>{const s=doc.createElement('script');s.src=src+'?v='+Date.now();s.dataset.jjkGithubPatch=tag;s.onload=()=>next?.();s.onerror=()=>{console.warn('[JJK-Life-Wheel] patch load failed',src);next?.()};doc.head.appendChild(s)};
-      loadPatch('./patches/current.js','current',()=>loadPatch('./patches/v3.js','v3',()=>loadPatch('./patches/v3b.js','v3b',()=>loadPatch('./patches/v4.js','v4',()=>loadPatch('./patches/v5.js','v5')))));
-    }catch(err){console.warn('[JJK-Life-Wheel] patch injection failed',err)}
+  // 只认干净的 game.html（部署时 workflow 会自动把带空格的文件名规范化）
+  const gameUrl = './game.html';
+  try {
+    const r = await fetch(gameUrl, { method: 'HEAD', cache: 'no-store' });
+    if (!r.ok) throw new Error('not found');
+  } catch {
+    spinner.hidden = true;
+    status.className = 'status warn';
+    status.textContent = '没有找到 game.html。请确认仓库根目录存在干净文件名的 game.html（不要有前导空格）。';
+    return;
+  }
+  status.textContent = '正在载入游戏……';
+  const frame = document.createElement('iframe');
+  frame.id = 'game';
+  frame.title = 'JJK Life Wheel';
+  frame.src = gameUrl + '?v=' + Date.now();
+  frame.allow = 'clipboard-read; clipboard-write';
+  frame.addEventListener('load', () => {
+    try {
+      const doc = frame.contentDocument;
+      const loadPatch = (src, tag, next) => {
+        const s = doc.createElement('script');
+        s.src = src + '?v=' + Date.now();
+        s.dataset.jjkGithubPatch = tag;
+        s.onload = () => next?.();
+        s.onerror = () => { console.warn('[JJK-Life-Wheel] patch load failed', src); next?.(); };
+        doc.head.appendChild(s);
+      };
+      // 按顺序注入补丁层
+      loadPatch('./patches/current.js', 'current', () =>
+        loadPatch('./patches/v3.js', 'v3', () =>
+          loadPatch('./patches/v3b.js', 'v3b', () =>
+            loadPatch('./patches/v4.js', 'v4', () =>
+              loadPatch('./patches/v5.js', 'v5')
+            )
+          )
+        )
+      );
+    } catch (err) {
+      console.warn('[JJK-Life-Wheel] patch injection failed', err);
+    }
     boot.remove();
-  },{once:true});
+  }, { once: true });
   document.body.appendChild(frame);
 })();
 </script>
