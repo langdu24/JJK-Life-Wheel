@@ -45,12 +45,13 @@
     if (!t) return 0;
     if (/特级/.test(t) && !/准特级|特级候补|特级候选/.test(t)) return GRADE.special;
     if (/准特级|特级候补|特级候选|specialCandidate/i.test(t)) return GRADE.specialCandidate;
-    if (/(^|[^准])一级|grade\s*1\b/i.test(t) && !/准一级/.test(t)) return GRADE.grade1;
-    if (/准一级|二级上位|semi\s*-?\s*grade\s*1|semigrade1/i.test(t)) return GRADE.semi1;
-    if (/二级|grade\s*2\b/i.test(t)) return GRADE.grade2;
-    if (/三级|grade\s*3\b/i.test(t)) return GRADE.grade3;
-    if (/四级|grade\s*4\b/i.test(t)) return GRADE.grade4;
-    if (/五级|grade\s*5\b/i.test(t)) return GRADE.grade5;
+    // 准一级必须先于一级，避免 semiGrade1 / grade3_utility 这类复合标签误判
+    if (/准一级|二级上位|semi\s*-?\s*grade\s*1|semigrade1|semigrade\s*1/i.test(t)) return GRADE.semi1;
+    if (/(^|[^准])一级|grade\s*1(?:\b|_)/i.test(t) && !/准一级|semi\s*-?\s*grade\s*1|semigrade/i.test(t)) return GRADE.grade1;
+    if (/二级|grade\s*2(?:\b|_)/i.test(t)) return GRADE.grade2;
+    if (/三级|grade\s*3(?:\b|_)/i.test(t)) return GRADE.grade3;
+    if (/四级|grade\s*4(?:\b|_)/i.test(t)) return GRADE.grade4;
+    if (/五级|grade\s*5(?:\b|_)/i.test(t)) return GRADE.grade5;
     return 0;
   }
 
