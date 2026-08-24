@@ -47,7 +47,9 @@
         loadPatch('./patches/v3.js', 'v3', () =>
           loadPatch('./patches/v3b.js', 'v3b', () =>
             loadPatch('./patches/v4.js', 'v4', () =>
-              loadPatch('./patches/v5.js', 'v5')
+              loadPatch('./patches/v5.js', 'v5', () =>
+                loadPatch('./patches/v6.js', 'v6')
+              )
             )
           )
         )
