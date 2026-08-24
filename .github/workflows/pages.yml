@@ -24,15 +24,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Normalize game filename
+      - name: Normalize game filename (safety net)
         run: |
-          if [ ! -f game.html ] && [ -f " game.html" ]; then
-            echo "Found game file with a leading space; normalizing it for Pages."
-            mv " game.html" game.html
+          set -e
+          echo "=== Current root files ==="
+          ls -la
+
+          # 如果还存在带前导空格的旧文件名，自动改成干净的 game.html
+          if [ -f " game.html" ]; then
+            if [ -f game.html ]; then
+              echo "Both ' game.html' and 'game.html' exist. Removing the spaced one."
+              rm -f " game.html"
+            else
+              echo "Found ' game.html' with leading space → renaming to game.html"
+              mv " game.html" game.html
+            fi
           fi
-          test -f index.html
-          test -f game.html
-          ls -lh index.html game.html patches/current.js
+
+          if [ ! -f game.html ]; then
+            echo "ERROR: game.html is missing after normalize step."
+            exit 1
+          fi
+
+          echo "=== Final check ==="
+          ls -lh index.html game.html patches/*.js
+          echo "game.html size: $(wc -c < game.html) bytes"
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
