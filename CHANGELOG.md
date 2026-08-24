@@ -1,15 +1,30 @@
 # Changelog
 
+## V8.0 · 2026-08-24 · 命运与抉择骨架
+
+- 新增 `core/v8-state.js` 作为 V8 纯状态核心，不依赖 DOM 或人生转盘全局 `state`。
+- 人物属性开始拆成 Base / Permanent / Temporary / Current 四层；旧 V7 既有长期成长与伤势以兼容来源迁移，不再覆盖 Base。
+- 第一版核心世界状态严格限制为 12 个：顺平、真人、五条封印、羂索、宿傩容器、伏黑惠、野蔷薇、东堂、乙骨、死灭回游、天元、宿傩最终状态。
+- 新增人生执念：角色确定后生成长期目标，记录进度、状态与历史；33 / 66 / 100 进度里程碑提供稀缺执念点，点数只能购买机会，不能直接购买属性或胜利。
+- 新增关键抉择框架。首个验证节点为涩谷事变：救援普通人 / 攻击高专 / 保持中立 / 主动寻找真人。选择会改变后续涩谷事件权重，并提供即时反馈。
+- 一键完整人生遇到 V8 关键抉择时暂停，避免自动流程替玩家决定真正重要的历史选择。
+- 新增规则一致性校验器骨架：零咒力冲突、高级技巧数量冲突、无术式/有术式冲突、未完成领域被按完整领域使用等硬冲突可输出 repair；海外 + 六眼等软冲突转为 `世界观异常`。
+- 新增 `命运面板`，展示 Current 属性、执念进度/执念点、12 个核心世界状态、关键抉择与世界观异常。
+- V8 不推翻 V7 战斗数值；V7 继续负责伤害/资源模型，V8 负责人物状态、选择与世界后果。
+- 新增 `tests/v8-state.test.js`，覆盖状态分层、临时修正到期、世界 Flag 白名单、执念点、硬/软冲突与“选择不能直接买战力”。
+- CI 开始对 `v8-state.js / v8-app.js` 做语法检查并运行 V8 状态测试。
+- 启动器与 `game.html` 标题升级为 V8「命运与抉择」。
+
 ## V7.1 · 2026-08-24 · 工程基线重构
 
 - 永久把根目录的 ` game.html` 重命名为干净的 `game.html`；Pages 不再依赖部署阶段临时改名。
-- `game.html` 源码标题统一为 `咒术转盘 V7 · Unified Data`，由幂等维护脚本检查并修正。
+- `game.html` 源码标题由幂等维护脚本检查并统一到当前维护版本。
 - 新增 `core/v7-model.js`：HP、CE、效率、抗性、物理/术式输出、EX+ 递减成长、软爆发全部集中为纯函数唯一真值。
 - `core/v7-data.js` 改为适配层，消费 V7 model，而不是继续拥有第二套公式。
 - `core/v7-app.js` 增加旧 SL key 自动迁移，并把永久 `setInterval` 扫描改为有限初始化重试 + 有时限 `MutationObserver`。
 - 新增 `JJKV7Lifecycle` 事件桥，提供 `ready / battle-start / wheel-commit` 生命周期事件，为后续删除 monkey-patch 做准备。
 - 旧数值补丁 `current / v3 / v3b / v4 / v6` 移入 `archive/legacy-patches/`，线上只保留 V5 流程兼容层。
-- README 更新为真实运行链：`v5 → v7-model → v7-data → v7-app`；Pages Source 明确使用 GitHub Actions。
+- README 更新为真实运行链；Pages Source 明确使用 GitHub Actions。
 - 新增 Node 测试：等级映射、HP/CE、低咒力高效率、零咒力、抗性、EX+、软爆发非硬上限、运行时结构检查。
 - CI 除 `node --check` 外开始运行 V7 测试，失败不发布。
 - 新增 `scripts/extract-embedded-data.mjs` 与 `docs/MONOLITH_SPLIT_V7.md`，正式开始 8MB 单体的数据外置迁移。
@@ -40,8 +55,8 @@
 
 ## V3～V4 / Balance v2 / Hotfix
 
-这些版本承担过 SL、一键车人、难度修正、甚尔爆发热修与术式威力热修。它们的数值实现已经停用，历史脚本保存在 `archive/legacy-patches/`，不应重新接回 V7 在线入口。
+这些版本承担过 SL、一键车人、难度修正、甚尔爆发热修与术式威力热修。它们的数值实现已经停用，历史脚本保存在 `archive/legacy-patches/`，不应重新接回在线入口。
 
 ## Baseline
 
-`game.html` 仍保留旧单文件运行时，以保障当前手机/离线玩法。V7 正按 `docs/MONOLITH_SPLIT_V7.md` 逐步外置数据、剧情、运行时和 UI。
+`game.html` 仍保留旧单文件运行时，以保障当前手机/离线玩法。战斗数据已开始外置到 `data/extracted-v7/`；V8 在不推翻 V7 战斗核心的前提下逐步接入人物状态、抉择、经历、关系与世界线系统。
